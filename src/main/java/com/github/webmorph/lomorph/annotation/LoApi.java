@@ -17,7 +17,7 @@ import java.lang.annotation.Target;
  *
  * <p>Fields marked with {@link LoIgnore} will be excluded.</p>
  *
- * <h3>Example:</h3>
+ * Example:
  * <pre>{@code
  * @LoApi
  * public class User {
