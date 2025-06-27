@@ -18,7 +18,7 @@
 
 ## ✨ Features
 
-- Generates `XGetter` / `XSetter` interfaces based on your `X` class
+- Generates `XGetter` / `XSetter` / `XApi` interfaces based on your `X` class
 - Skips `final`, `static`, `transient` and explicitly ignored (`@LoIgnore`) fields
 - Supports generating getters, setters, or both
 - Runs at compile-time (Java Annotation Processing API)
@@ -28,6 +28,7 @@
 ## 🔧 Example
 
 ```java
+@LoApi
 @LoGetter
 @LoSetter
 public class User {
@@ -41,6 +42,11 @@ public class User {
 
 ### 👉 Generates:
 ```java
+public interface UserApi {
+    int getId();
+    String getName();
+    void setName(String name);
+}
 public interface UserGetter {
     int getId();
     String getName();

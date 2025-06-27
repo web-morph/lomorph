@@ -1,5 +1,6 @@
 package com.github.webmorph.lomorph;
 
+import com.github.webmorph.lomorph.annotation.LoApi;
 import com.github.webmorph.lomorph.annotation.LoGetter;
 import com.github.webmorph.lomorph.annotation.LoIgnore;
 import com.github.webmorph.lomorph.annotation.LoSetter;
@@ -19,7 +20,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Annotation processor for {@link LoGetter} and {@link LoSetter}.
+ * Annotation processor for {@link LoApi}, {@link LoGetter} and {@link LoSetter}.
  * <p>
  * This processor generates interfaces with getter and/or setter method signatures
  * based on the fields of the annotated class.
@@ -29,10 +30,12 @@ import java.util.stream.Collectors;
  *     <li>{@code @LoGetter} — generates an interface with getters</li>
  *     <li>{@code @LoSetter} — generates an interface with setters (excluding final fields)</li>
  *     <li>{@code @LoIgnore} — excludes the field from generation</li>
+ *     <li>{@code @LoApi} — generates an interface with getters and setters</li>
  * </ul>
  */
 @AutoService(Processor.class)
 @SupportedAnnotationTypes(value = {
+        "com.github.webmorph.lomorph.annotation.LoApi",
         "com.github.webmorph.lomorph.annotation.LoIgnore",
         "com.github.webmorph.lomorph.annotation.LoSetter",
         "com.github.webmorph.lomorph.annotation.LoGetter"
@@ -68,7 +71,7 @@ public class LoMorphProcessor extends AbstractProcessor {
     }
 
     /**
-     * Entry point for annotation processing. Scans classes annotated with {@link LoGetter} or {@link LoSetter}
+     * Entry point for annotation processing. Scans classes annotated with {@link LoApi}, {@link LoGetter} or {@link LoSetter}
      * and generates interface definitions accordingly.
      *
      * @param annotations Set of annotations detected
@@ -77,7 +80,7 @@ public class LoMorphProcessor extends AbstractProcessor {
      */
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-        for (Element element : roundEnv.getElementsAnnotatedWithAny(Set.of(LoSetter.class, LoGetter.class))) {
+        for (Element element : roundEnv.getElementsAnnotatedWithAny(Set.of(LoSetter.class, LoGetter.class, LoApi.class))) {
             if (element.getKind() != ElementKind.CLASS) continue;
             TypeElement classElement = (TypeElement) element;
             String className = classElement.getSimpleName().toString();
@@ -93,32 +96,38 @@ public class LoMorphProcessor extends AbstractProcessor {
                 process("Setter", packageName, className, fields);
             if (classElement.getAnnotation(LoGetter.class) != null)
                 process("Getter", packageName, className, fields);
+            if (classElement.getAnnotation(LoApi.class) != null)
+                process("Api", packageName, className, fields);
         }
         return true;
     }
 
+    private String generateBody(String suffix, boolean isFinal) {
+        boolean wantGetter = suffix.equals("Getter") || suffix.equals("Api");
+        boolean wantSetter = (suffix.equals("Setter") || suffix.equals("Api")) && !isFinal;
+        StringBuilder builder = new StringBuilder();
+        if (wantGetter) builder.append("{type} get{capitalizedName}();\n");
+        if (wantSetter) builder.append("void set{capitalizedName}({type} {name});\n");
+        return builder.toString();
+    }
+
     /**
-     * Generates a Java interface with either getter or setter method declarations.
+     * Generates a Java interface with either getter and/or setter method declarations.
      *
-     * @param loType      Either "Getter" or "Setter"
+     * @param suffix      Either "Getter" or "Setter"
      * @param packageName Package to generate into
      * @param className   Name of the original class
      * @param fields      List of eligible fields
      */
-    private void process(String loType, String packageName, String className, List<VariableElement> fields) {
+    private void process(String suffix, String packageName, String className, List<VariableElement> fields) {
         try {
-            JavaFileObject file = filer.createSourceFile(packageName + "." + className + loType);
+            JavaFileObject file = filer.createSourceFile(packageName + "." + className + suffix);
             try (Writer writer = file.openWriter()) {
-                boolean isGetter = loType.equals("Getter");
-                String body = fields.stream().filter(field -> isGetter || !field.getModifiers().contains(Modifier.FINAL))
+                String body = fields.stream()
                         .map(field -> {
                             String type = field.asType().toString();
                             String name = field.getSimpleName().toString();
-                            return format(isGetter ? """
-                                        {type} get{capitalizedName}();
-                                    """ : """
-                                        void set{capitalizedName}({type} {name});
-                                    """, Map.of(
+                            return format(generateBody(suffix, field.getModifiers().contains(Modifier.FINAL)), Map.of(
                                     "capitalizedName", name.substring(0, 1).toUpperCase() + name.substring(1),
                                     "type", type,
                                     "name", name
@@ -132,7 +141,7 @@ public class LoMorphProcessor extends AbstractProcessor {
                         }""", Map.of(
                         "package", packageName,
                         "name", className,
-                        "type", loType,
+                        "type", suffix,
                         "body", body
                 )));
             }
