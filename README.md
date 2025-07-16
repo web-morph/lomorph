@@ -5,7 +5,7 @@
 <p align="center">
 <a href="https://github.com/web-morph/lomorph?tab=LGPL-3.0-1-ov-file"><img alt="License" src="https://img.shields.io/github/license/web-morph/lomorph"></a>
 <a href="https://docs.gradle.org/8.14/release-notes.html"><img src="https://img.shields.io/badge/Gradle-8.14-brightgreen.svg?colorB=469C00&logo=gradle"></a>
-<a href="https://repo.jyraf.com/service/rest/v1/search/assets/download?sort=version&repository=maven-releases&maven.groupId=com.github.webmorph&maven.artifactId=lomorph&maven.extension=jar&maven.classifier=" target="_blank"><img alt="Download" src="https://img.shields.io/nexus/r/com.github.webmorph/lomorph?server=https%3A%2F%2Frepo.jyraf.com"></a>
+<a href="https://repo.billmarssoft.com/api/maven/latest/file/releases/com/github/webmorph/lomorph?extension=jar" target="_blank"><img alt="Download" src="https://repo.billmarssoft.com/api/badge/latest/releases/com/github/webmorph/lomorph"></a>
 </p>
 
 ---
@@ -18,7 +18,7 @@
 
 ## ✨ Features
 
-- Generates `XGetter` / `XSetter` interfaces based on your `X` class
+- Generates `XGetter` / `XSetter` / `XApi` interfaces based on your `X` class
 - Skips `final`, `static`, `transient` and explicitly ignored (`@LoIgnore`) fields
 - Supports generating getters, setters, or both
 - Runs at compile-time (Java Annotation Processing API)
@@ -28,6 +28,7 @@
 ## 🔧 Example
 
 ```java
+@LoApi
 @LoGetter
 @LoSetter
 public class User {
@@ -41,6 +42,11 @@ public class User {
 
 ### 👉 Generates:
 ```java
+public interface UserApi {
+    int getId();
+    String getName();
+    void setName(String name);
+}
 public interface UserGetter {
     int getId();
     String getName();
@@ -59,7 +65,7 @@ public interface UserSetter {
 
 ```kts
 repositories {
-    maven("https://repo.jyraf.com/repository/maven-public/")
+    maven("https://repo.billmarssoft.com/public/")
 }
 
 dependencies {
@@ -73,7 +79,7 @@ dependencies {
 ```groovy
 repositories {
     maven {
-        url 'https://repo.jyraf.com/repository/maven-public/'
+        url 'https://repo.billmarssoft.com/public/'
     }
 }
 
